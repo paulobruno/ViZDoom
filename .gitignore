@@ -110,3 +110,9 @@ src/vizdoom/zlib/x64/
 **_vizdoom.ini
 dist/
 vizdoom.egg-info/
+
+# Commit file
+Notes.txt
+
+# Tensorflow chekpoints
+model_*
