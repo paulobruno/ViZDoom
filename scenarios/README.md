@@ -191,7 +191,7 @@ Further configuration:
 * death penalty = 100
 
 
-##HEALTH POISON REWARD
+##HEALTH POISON REWARDS
 The purpose of this scenario is to teach the agent how to survive
 knowing what makes him survive and what makes him suffer. Agent
 know that picking up medkits is good and picking up poisons is bad.
@@ -211,5 +211,29 @@ REWARDS:
 Further configuration:
 * living_reward = 1
 * 3 available buttons: turn left, turn right, move forward
-* 1  available game variable: HEALTH
+* 1 available game variable: HEALTH
+* death penalty = 100
+
+
+##HEALTH POISON REWARDS FLOOR
+The purpose of this scenario is to teach the agent how to survive
+knowing what makes him survive and what makes him suffer. Agent
+know that picking up medkits is good and picking up poisons is bad.
+
+Map is a rectangle with a fixes red, acidic floor which hurts the 
+player periodically. Initially there are some medkits and poisons
+spread uniformly over the map. A new medkit and a new poison fall 
+from the skies every now and then. Medkits heal some portions of
+player's health - to survive agent needs to pick them up - and poisons
+make damage to his health - to survive agent cannot pick 3 in sequence.
+Episode finishes after player's death or on timeout.
+
+REWARDS:
++5 for picking up a medkit
+-5 for picking up a poison
+
+Further configuration:
+* living_reward = 1
+* 3 available buttons: turn left, turn right, move forward
+* 1 available game variable: HEALTH
 * death penalty = 100
