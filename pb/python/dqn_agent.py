@@ -18,16 +18,23 @@ import errno
 
 
 # game parameters
-game_map = 'line'
+game_map = 'basic'
 game_resolution = (30, 45)
 img_channels = 1
 frame_repeat = 12
 
+learn_model = False
 load_model = True
-save_model = False
-save_log = False
-skip_learning = True
 
+if (learn_model):
+    save_model = True
+    save_log = True
+    skip_learning = False
+else:
+    save_model = False
+    save_log = False
+    skip_learning = True
+    
 log_savefile = 'log.txt'
 model_savefile = 'model.ckpt'
 
@@ -64,11 +71,11 @@ fc_num_outputs = 1024
 
 # NN learning settings
 batch_size = 64
-dropout_keep_prob = 0.8
 
 # training regime
-num_epochs = 40
+num_epochs = 60
 learning_steps_per_epoch = 5000
+num_episodes = 100
 test_episodes_per_epoch = 10
 episodes_to_watch = 5
 
@@ -135,8 +142,8 @@ def create_network(session, num_available_actions):
     def conv2d(x, W):
         return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-    def max_pool_2x2(x):
-        return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+#    def max_pool_2x2(x):
+#        return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
 
     s1_ = tf.placeholder(tf.float32, [None] + list(game_resolution) + [img_channels], name='State')
@@ -151,7 +158,7 @@ def create_network(session, num_available_actions):
 
     h_conv1 = tf.nn.relu(conv2d(s1_, W_conv1) + b_conv1)
     #print('h_conv1: ', h_conv1)
-    h_pool1 = max_pool_2x2(h_conv1)
+    #h_pool1 = max_pool_2x2(h_conv1)
     #print('h_pool1: ', h_pool1)
 
     # second convolutional layer
@@ -160,16 +167,16 @@ def create_network(session, num_available_actions):
     b_conv2 = bias_variable([features_layer2]) # [64]
     #print('b_conv2: ', b_conv2)
 
-    h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+    h_conv2 = tf.nn.relu(conv2d(h_conv1, W_conv2) + b_conv2)
     #print('h_conv2: ', h_conv2)
-    h_pool2 = max_pool_2x2(h_conv2)
+    #h_pool2 = max_pool_2x2(h_conv2)
     #print('h_pool2: ', h_pool2)
 
     # densely connected layer
-    W_fc1 = weight_variable([ceildiv(game_resolution[0],4)*ceildiv(game_resolution[1],4)*features_layer2, fc_num_outputs]) # [8*12*(64), 1024]
+    W_fc1 = weight_variable([game_resolution[0]*game_resolution[1]*features_layer2, fc_num_outputs]) # [8*12*(64), 1024]
     b_fc1 = bias_variable([fc_num_outputs]) # [1024]
 
-    h_pool2_flat = tf.reshape(h_pool2, [-1, ceildiv(game_resolution[0],4)*ceildiv(game_resolution[1],4)*features_layer2]) # [-1, 8*12*(64)]
+    h_pool2_flat = tf.reshape(h_conv2, [-1, game_resolution[0]*game_resolution[1]*features_layer2]) # [-1, 8*12*(64)]
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # dropout
@@ -305,16 +312,24 @@ if __name__ == '__main__':
             train_scores = []
 
             print('Training...')
-            dropout_keep_prob = 0.8
+            dropout_keep_prob = 0.5
             game.new_episode()
-            
+                
             for learning_step in trange(learning_steps_per_epoch):
                 perform_learning_step(epoch)
                 if game.is_episode_finished():
-                    score = game.get_total_reward()                    
+                    score = game.get_total_reward()
                     train_scores.append(score)
                     game.new_episode()
                     train_episodes_finished += 1
+
+#            for episode in trange(num_episodes):
+#                while not (game.is_episode_finished()):
+#                    perform_learning_step(epoch)
+#                score = game.get_total_reward()                    
+#                train_scores.append(score)
+#                train_episodes_finished += 1
+#                game.new_episode()
 
             print('%d training episodes played.' % train_episodes_finished)
  
