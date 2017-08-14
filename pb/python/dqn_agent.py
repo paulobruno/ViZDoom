@@ -20,18 +20,18 @@ import errno
 import matplotlib.pyplot as plt
 
 # game parameters
-game_map = 'health_poison_rewards'
+game_map = 'health_poison_rewards_floor'
 game_resolution = (48, 64)
 img_channels = 1
-frame_repeat = 4
+frame_repeat = 8
 
 learn_model = False
 load_model = True
 
 
 if (learn_model):
-    save_model = False
-    save_log = False
+    save_model = True
+    save_log = True
     skip_learning = False
 else:
     save_model = False
@@ -58,7 +58,10 @@ elif (game_map == 'health_poison'):
     save_path = 'model_pb_health_poison/'
 elif (game_map == 'health_poison_rewards'):
     config_file_path = '../../scenarios/health_poison_rewards.cfg'
-    save_path = 'model_pb_health_poison_rewards_3/'
+    save_path = 'model_pb_health_poison_rewards_4/'
+elif (game_map == 'health_poison_rewards_floor'):
+    config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
+    save_path = 'model_pb_health_poison_rewards_floor/'
 else:
     print('ERROR: wrong game map.')
 
@@ -77,7 +80,7 @@ else:
 #episodes_to_watch = 5
 
 # training regime
-num_epochs = 40
+num_epochs = 70
 learning_steps_per_epoch = 15000
 test_episodes_per_epoch = 10
 episodes_to_watch = 5
@@ -311,23 +314,14 @@ if __name__ == '__main__':
     video_index = 1
     make_sure_path_exists(save_path + "records")
 
-    states_array = []
-    best_a_array = []
-    
-    for _ in range(3):
+    for _ in range(episodes_to_watch):
         game.set_seed(666)
-        game.new_episode()
+        game.new_episode(save_path + "records/ep_" + str(video_index) + "_rec.lmp")
         video_index += 1
-        index_array = 0
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer)
             best_action_index = get_best_action(state, 1.0)
             
-            if (index_array < 200):
-                states_array.append(state)
-                best_a_array.append(best_action_index)
-                index_array += 1
-                
             game.set_action(actions[best_action_index])
             for _ in range(frame_repeat):
                 game.advance_action()
@@ -335,37 +329,3 @@ if __name__ == '__main__':
         sleep(1.0)
         score = game.get_total_reward()
         print('Total score: ', score)
-        
-    game.close()
-        
-    for i in range(0,80):
-        #if ((best_a_array[i] != best_a_array[i+200]) or
-        #    (best_a_array[i] != best_a_array[i+400]) or
-        #    (best_a_array[i+200] != best_a_array[i+400])):      
-
-        fig = plt.figure(frameon=False)
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-        fig.set_size_inches(6.4, 4.8)
-        #ax.imshow(states_array[i-1])
-        #plt.savefig('../../' + str(i-1) + '_1_' + str(best_a_array[i-1]) + '.png')
-        #ax.imshow(states_array[i-1+200])
-        #plt.savefig('../../' + str(i-1) + '_2_' + str(best_a_array[i-1+200]) + '.png')
-        #ax.imshow(states_array[i-1+400])
-        #plt.savefig('../../' + str(i-1) + '_3_' + str(best_a_array[i-1+400]) + '.png')
-        ax.imshow(states_array[i])
-        plt.savefig('../../' + str(i) + '_1_' + str(best_a_array[i]) + '.png')
-        ax.imshow(states_array[i+200])
-        plt.savefig('../../' + str(i) + '_2_' + str(best_a_array[i+200]) + '.png')
-        ax.imshow(states_array[i+400])
-        plt.savefig('../../' + str(i) + '_3_' + str(best_a_array[i+400]) + '.png')
-'''
-            print(i)
-            print(states_array[i])
-            print(best_a_array[i])
-            print(states_array[i+200])
-            print(best_a_array[i+200])
-            print(states_array[i+400])
-            print(best_a_array[i+400])
-            raw_input('next...') # in python3 use input() instead'''
