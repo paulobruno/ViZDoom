@@ -17,10 +17,9 @@ import tensorflow as tf
 import os
 import errno
 
-import matplotlib.pyplot as plt
 
 # game parameters
-game_map = 'health_poison_rewards_floor'
+game_map = 'basic'
 game_resolution = (48, 64)
 img_channels = 1
 frame_repeat = 8
@@ -43,10 +42,10 @@ model_savefile = 'model.ckpt'
 
 if (game_map == 'basic'):
     config_file_path = '../../scenarios/basic.cfg'
-    save_path = 'temp/'
+    save_path = 'sbgames_basic/'
 elif (game_map == 'line'):
     config_file_path = '../../scenarios/defend_the_line.cfg'
-    save_path = 'temp/'
+    save_path = 'sbgames_line/'
 elif (game_map == 'corridor'):
     config_file_path = '../../scenarios/deadly_corridor.cfg'
     save_path = 'model_pb_corridor/'
@@ -61,9 +60,10 @@ elif (game_map == 'health_poison_rewards'):
     save_path = 'model_pb_health_poison_rewards_4/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'temp/'
+    save_path = 'model_pb_health_poison_rewards_floor_7/'
 else:
     print('ERROR: wrong game map.')
+
 
 # training regime
 num_epochs = 50
@@ -89,6 +89,7 @@ dropout_keep_prob = 0.7
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
+
 
 def make_sure_path_exists(path):
     try:
@@ -124,16 +125,12 @@ def perform_learning_step(eps):
     
     s1 = preprocess(game.get_state().screen_buffer)
 
-#    eps = epsilon_list(epoch)
     if random() <= eps:
         a = randint(0, len(actions) - 1)
     else:
         a = get_best_action(s1, True)
         
     reward = game.make_action(actions[a], frame_repeat)
-    if (reward > (2*frame_repeat)):
-        global fruits_per_episode_train
-        fruits_per_episode_train += 1
     
     isterminal = game.is_episode_finished()
     s2 = preprocess(game.get_state().screen_buffer) if not isterminal else None
@@ -201,7 +198,7 @@ if __name__ == '__main__':
             print('Epochs: ' + str(num_epochs), file=log_file)
             print('Learning steps: ' + str(learning_steps_per_epoch), file=log_file)
             print('Test episodes: ' + str(test_episodes_per_epoch), file=log_file)
-            print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Over_3000_train Fruits_eaten_min Fruits_eaten_mean Fruits_eaten_max Testing_min Testing_mean Testing_max Over_3000_test Fruits_eaten_min Fruits_eaten_mean Fruits_eaten_max', file=log_file)
+            print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max', file=log_file)
             log_file.flush()
 
 
@@ -242,10 +239,6 @@ if __name__ == '__main__':
             eps = exploration_rate(epoch)
             print('epoch: ' + str(epoch), file=debug_file)
             print('eps: ' + str(eps), file=debug_file)
-
-            fruits_per_episode_train = 0
-            fruits_eaten_train = []
-            above_three_train = 0
             
             for learning_step in trange(learning_steps_per_epoch):
                 perform_learning_step(eps)
@@ -254,10 +247,6 @@ if __name__ == '__main__':
                     train_scores.append(score)
                     game.new_episode()
                     train_episodes_finished += 1
-                    fruits_eaten_train.append(fruits_per_episode_train)                    
-                    fruits_per_episode_train = 0            
-                    if (score >= 3000):
-                        above_three_train += 1
 
             print('%d training episodes played.' % train_episodes_finished)
  
@@ -266,17 +255,11 @@ if __name__ == '__main__':
             print('Results: mean: %.1f±%.1f,' % (train_scores.mean(), train_scores.std()), \
                   'min: %.1f,' % train_scores.min(), 'max: %.1f,' % train_scores.max())
 
-            fruits_eaten_test = []
-            above_three_test = 0
-            
             print('\nTesting...')
             test_episode = []
             test_scores = []
             for test_episode in trange(test_episodes_per_epoch):        
                 game.set_seed(test_map[test_episode])
-                
-                fruits_per_episode_test = 0
-                
                 game.new_episode()
                 while not game.is_episode_finished():
                     state = preprocess(game.get_state().screen_buffer)
@@ -287,14 +270,9 @@ if __name__ == '__main__':
                         is_random, action_without_drop, action_with_drop = sim_perform_step(eps)
                         print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
                     
-                    rew = game.make_action(actions[best_action_index], frame_repeat)
-                    if (rew > (2*frame_repeat)):
-                        fruits_per_episode_test += 1
+                    game.make_action(actions[best_action_index], frame_repeat)             
                 r = game.get_total_reward()
                 test_scores.append(r)
-                fruits_eaten_test.append(fruits_per_episode_test)
-                if (r >= 3000):
-                    above_three_test += 1
 
             test_scores = np.array(test_scores)
             print('Results: mean: %.1f±%.1f,' % (test_scores.mean(), test_scores.std()), \
@@ -309,16 +287,12 @@ if __name__ == '__main__':
             total_elapsed_time = (time() - time_start) / 60.0
             print('Total elapsed time: %.2f minutes' % total_elapsed_time)
 
-            fruits_eaten_train = np.array(fruits_eaten_train)
-            fruits_eaten_test = np.array(fruits_eaten_test)
 
             # log to file
             if save_log:
                 print(total_elapsed_time, train_episodes_finished, 
-                      train_scores.min(), train_scores.mean(), train_scores.max(), above_three_train,
-                      fruits_eaten_train.min(), fruits_eaten_train.mean(), fruits_eaten_train.max(),
-                      test_scores.min(), test_scores.mean(), test_scores.max(), above_three_test,
-                      fruits_eaten_test.min(), fruits_eaten_test.mean(), fruits_eaten_test.max(), file=log_file)
+                      train_scores.min(), train_scores.mean(), train_scores.max(), 
+                      test_scores.min(), test_scores.mean(), test_scores.max(), file=log_file)
                 log_file.flush()
 
     if save_log:
