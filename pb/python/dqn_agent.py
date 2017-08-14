@@ -21,12 +21,12 @@ import matplotlib.pyplot as plt
 
 # game parameters
 game_map = 'health_poison_rewards_floor'
-game_resolution = (48, 64)
+game_resolution = (96, 128)
 img_channels = 1
-frame_repeat = 8
+frame_repeat = 4
 
-learn_model = True
-load_model = False
+learn_model = False
+load_model = True
 
 
 if (learn_model):
@@ -61,7 +61,7 @@ elif (game_map == 'health_poison_rewards'):
     save_path = 'model_pb_health_poison_rewards_4/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_pb_health_poison_rewards_floor_6/'
+    save_path = 'model_pb_health_poison_rewards_floor_3/'
 else:
     print('ERROR: wrong game map.')
 
@@ -80,29 +80,32 @@ else:
 #episodes_to_watch = 5
 
 # training regime
-num_epochs = 85
-learning_steps_per_epoch = 10000
+num_epochs = 20
+learning_steps_per_epoch = 7000
 test_episodes_per_epoch = 50
 episodes_to_watch = 5
 
 # NN learning settings
-batch_size = 64
+batch_size = 32
 
 # NN architecture
 conv_width = 4
 conv_height = 4
-features_layer1 = 64
-features_layer2 = 128
-fc_num_outputs = 512
+features_layer1 = 32
+features_layer2 = 64
+features_layer3 = 128
+features_layer4 = 256
+fc_num_outputs = 1024
 
 # Q-learning settings
-learning_rate = 0.0001
+learning_rate = 0.0002
 discount_factor = 0.99
-replay_memory_size = 10000
+replay_memory_size = 100000
 dropout_keep_prob = 0.7
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
+
 
 def make_sure_path_exists(path):
     try:
@@ -164,13 +167,12 @@ def perform_learning_step(eps):
         
 def sim_perform_step(eps):
     
+    s1 = preprocess(game.get_state().screen_buffer)
+
     if random() <= eps:
-        # is_random, random_action, -1 (only to complete number of args)
-        return 1, randint(0, len(actions) - 1), -1
+        return randint(0, len(actions) - 1), True
     else:
-        s1 = preprocess(game.get_state().screen_buffer)
-        # is not random, action without dropout, action with dropout
-        return 0, get_best_action(s1, False), get_best_action(s1, True)
+        return get_best_action(s1, True), False
     
 
 def initialize_vizdoom(config_file_path):
@@ -214,7 +216,7 @@ if __name__ == '__main__':
             print('Dropout probability: ' + str(dropout_keep_prob), file=log_file)
             print('Batch size: ' + str(batch_size), file=log_file)
             print('Convolution kernel size: (' + str(conv_width) + ',' + str(conv_height) + ')', file=log_file)
-            print('Layers size: ' + str(features_layer1) + ' ' + str(features_layer2), file=log_file)
+            print('Layers size: ' + str(features_layer1) + ' ' + str(features_layer2) + ' ' + str(features_layer3) + ' ' + str(features_layer4), file=log_file)
             print('Fully connected size: ' + str(fc_num_outputs), file=log_file)
             print('Epochs: ' + str(num_epochs), file=log_file)
             print('Learning steps: ' + str(learning_steps_per_epoch), file=log_file)
@@ -233,7 +235,7 @@ if __name__ == '__main__':
 
     sess = tf.Session()
 #    learn, get_q_values, get_best_action = create_network(sess, len(actions), game_resolution, img_channels)
-    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate)
+    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, features_layer3, features_layer4, fc_num_outputs, learning_rate)
     
     saver = tf.train.Saver()
 
@@ -287,10 +289,10 @@ if __name__ == '__main__':
                     state = preprocess(game.get_state().screen_buffer)
                     best_action_index = get_best_action(state, False)
                     
-                    # print action choices of last 5 epochs
-                    if (epoch > (num_epochs-6)):
-                        is_random, action_without_drop, action_with_drop = sim_perform_step(eps)
-                        print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
+                    # print action choices of last 10 epochs
+                    if (epoch > (num_epochs-12)):
+                        sim_action_index, is_random = sim_perform_step(eps)
+                        print(str(best_action_index) + ' ' + str(sim_action_index) + ' ' + str(is_random), file=debug_file)
                     
                     game.make_action(actions[best_action_index], frame_repeat)             
                 r = game.get_total_reward()

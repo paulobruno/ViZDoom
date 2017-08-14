@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def create_network(session, num_available_actions, game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate):
+def create_network(session, num_available_actions, game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, features_layer3, features_layer4, fc_num_outputs, learning_rate):
 
     s1_ = tf.placeholder(tf.float32, [None] + list(game_resolution) + [img_channels], name='State')
     target_q_ = tf.placeholder(tf.float32, [None, num_available_actions], name='TargetQ')
@@ -15,8 +15,16 @@ def create_network(session, num_available_actions, game_resolution, img_channels
                                             activation_fn=tf.nn.relu,
                                             weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                                             biases_initializer=tf.constant_initializer(0.1))
-    conv2_flat = tf.contrib.layers.flatten(conv2)
-    fc1 = tf.contrib.layers.fully_connected(conv2_flat, num_outputs=fc_num_outputs, activation_fn=tf.nn.relu,
+    conv3 = tf.contrib.layers.convolution2d(conv2, num_outputs=features_layer3, kernel_size=[conv_width, conv_height], stride=[2, 2],
+                                            activation_fn=tf.nn.relu,
+                                            weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                                            biases_initializer=tf.constant_initializer(0.1))
+    conv4 = tf.contrib.layers.convolution2d(conv3, num_outputs=features_layer4, kernel_size=[conv_width, conv_height], stride=[2, 2],
+                                            activation_fn=tf.nn.relu,
+                                            weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                                            biases_initializer=tf.constant_initializer(0.1))
+    conv4_flat = tf.contrib.layers.flatten(conv4)
+    fc1 = tf.contrib.layers.fully_connected(conv4_flat, num_outputs=fc_num_outputs, activation_fn=tf.nn.relu,
                                             weights_initializer=tf.contrib.layers.xavier_initializer(),
                                             biases_initializer=tf.constant_initializer(0.1))
 
