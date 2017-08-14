@@ -61,7 +61,7 @@ elif (game_map == 'health_poison_rewards'):
     save_path = 'model_pb_health_poison_rewards_4/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_pb_health_poison_rewards_floor_2/'
+    save_path = 'model_pb_health_poison_rewards_floor_6/'
 else:
     print('ERROR: wrong game map.')
 
@@ -80,9 +80,9 @@ else:
 #episodes_to_watch = 5
 
 # training regime
-num_epochs = 1
-learning_steps_per_epoch = 1000
-test_episodes_per_epoch = 30
+num_epochs = 85
+learning_steps_per_epoch = 10000
+test_episodes_per_epoch = 50
 episodes_to_watch = 5
 
 # NN learning settings
@@ -91,9 +91,9 @@ batch_size = 64
 # NN architecture
 conv_width = 4
 conv_height = 4
-features_layer1 = 32
-features_layer2 = 64
-fc_num_outputs = 1024
+features_layer1 = 64
+features_layer2 = 128
+fc_num_outputs = 512
 
 # Q-learning settings
 learning_rate = 0.0001
@@ -101,8 +101,8 @@ discount_factor = 0.99
 replay_memory_size = 10000
 dropout_keep_prob = 0.7
 
-
-test_map = [842, 763, 279, 899, 964, 556, 55, 574, 909, 215, 824, 108, 310, 754, 566, 666, 951, 446, 12, 516, 850, 452, 210, 108, 756, 302, 972, 945, 460, 980]
+# 50 random seeds previously generated to use during test
+test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
 
 def make_sure_path_exists(path):
     try:
@@ -160,7 +160,18 @@ def perform_learning_step(eps):
         target_q[np.arange(target_q.shape[0]), a] = r + discount_factor * (1-isterminal) * q2
 
         learn(s1, target_q, True)
+
         
+def sim_perform_step(eps):
+    
+    if random() <= eps:
+        # is_random, random_action, -1 (only to complete number of args)
+        return 1, randint(0, len(actions) - 1), -1
+    else:
+        s1 = preprocess(game.get_state().screen_buffer)
+        # is not random, action without dropout, action with dropout
+        return 0, get_best_action(s1, False), get_best_action(s1, True)
+    
 
 def initialize_vizdoom(config_file_path):
     print('Initializing doom...')
@@ -191,6 +202,7 @@ if __name__ == '__main__':
         if load_model:
             log_file = open(save_path+log_savefile, 'a')
         else:
+            debug_file = open(save_path+'debug.txt', 'w')
             log_file = open(save_path+log_savefile, 'w')
             print('Map: ' + game_map, file=log_file)
             print('Resolution: ' + str(game_resolution), file=log_file)
@@ -247,6 +259,8 @@ if __name__ == '__main__':
             game.new_episode()
             
             eps = exploration_rate(epoch)
+            print('epoch: ' + str(epoch), file=debug_file)
+            print('eps: ' + str(eps), file=debug_file)
             
             for learning_step in trange(learning_steps_per_epoch):
                 perform_learning_step(eps)
@@ -272,6 +286,11 @@ if __name__ == '__main__':
                 while not game.is_episode_finished():
                     state = preprocess(game.get_state().screen_buffer)
                     best_action_index = get_best_action(state, False)
+                    
+                    # print action choices of last 5 epochs
+                    if (epoch > (num_epochs-6)):
+                        is_random, action_without_drop, action_with_drop = sim_perform_step(eps)
+                        print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
                     
                     game.make_action(actions[best_action_index], frame_repeat)             
                 r = game.get_total_reward()
@@ -300,6 +319,7 @@ if __name__ == '__main__':
 
     if save_log:
         log_file.close()
+        debug_file.close()
 
     game.close()
     print('======================================')
