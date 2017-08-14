@@ -17,6 +17,7 @@ import tensorflow as tf
 import os
 import errno
 
+import matplotlib.pyplot as plt
 
 # game parameters
 game_map = 'health_poison_rewards'
@@ -29,8 +30,8 @@ load_model = True
 
 
 if (learn_model):
-    save_model = True
-    save_log = True
+    save_model = False
+    save_log = False
     skip_learning = False
 else:
     save_model = False
@@ -310,14 +311,23 @@ if __name__ == '__main__':
     video_index = 1
     make_sure_path_exists(save_path + "records")
 
-    for _ in range(episodes_to_watch):
+    states_array = []
+    best_a_array = []
+    
+    for _ in range(3):
         game.set_seed(666)
-        game.new_episode(save_path + "records/ep_" + str(video_index) + "_rec.lmp")
+        game.new_episode()
         video_index += 1
+        index_array = 0
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer)
             best_action_index = get_best_action(state, 1.0)
             
+            if (index_array < 200):
+                states_array.append(state)
+                best_a_array.append(best_action_index)
+                index_array += 1
+                
             game.set_action(actions[best_action_index])
             for _ in range(frame_repeat):
                 game.advance_action()
@@ -325,3 +335,37 @@ if __name__ == '__main__':
         sleep(1.0)
         score = game.get_total_reward()
         print('Total score: ', score)
+        
+    game.close()
+        
+    for i in range(0,80):
+        #if ((best_a_array[i] != best_a_array[i+200]) or
+        #    (best_a_array[i] != best_a_array[i+400]) or
+        #    (best_a_array[i+200] != best_a_array[i+400])):      
+
+        fig = plt.figure(frameon=False)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        fig.set_size_inches(6.4, 4.8)
+        #ax.imshow(states_array[i-1])
+        #plt.savefig('../../' + str(i-1) + '_1_' + str(best_a_array[i-1]) + '.png')
+        #ax.imshow(states_array[i-1+200])
+        #plt.savefig('../../' + str(i-1) + '_2_' + str(best_a_array[i-1+200]) + '.png')
+        #ax.imshow(states_array[i-1+400])
+        #plt.savefig('../../' + str(i-1) + '_3_' + str(best_a_array[i-1+400]) + '.png')
+        ax.imshow(states_array[i])
+        plt.savefig('../../' + str(i) + '_1_' + str(best_a_array[i]) + '.png')
+        ax.imshow(states_array[i+200])
+        plt.savefig('../../' + str(i) + '_2_' + str(best_a_array[i+200]) + '.png')
+        ax.imshow(states_array[i+400])
+        plt.savefig('../../' + str(i) + '_3_' + str(best_a_array[i+400]) + '.png')
+'''
+            print(i)
+            print(states_array[i])
+            print(best_a_array[i])
+            print(states_array[i+200])
+            print(best_a_array[i+200])
+            print(states_array[i+400])
+            print(best_a_array[i+400])
+            raw_input('next...') # in python3 use input() instead'''
