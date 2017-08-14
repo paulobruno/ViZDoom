@@ -24,8 +24,8 @@ game_resolution = (48, 64)
 img_channels = 1
 frame_repeat = 8
 
-learn_model = False
-load_model = True
+learn_model = True
+load_model = False
 
 
 if (learn_model):
@@ -42,25 +42,25 @@ model_savefile = 'model.ckpt'
 
 if (game_map == 'basic'):
     config_file_path = '../../scenarios/basic.cfg'
-    save_path = 'sbgames_basic/'
+    save_path = 'model_basic/'
 elif (game_map == 'line'):
     config_file_path = '../../scenarios/defend_the_line.cfg'
-    save_path = 'sbgames_line/'
+    save_path = 'model_line/'
 elif (game_map == 'corridor'):
     config_file_path = '../../scenarios/deadly_corridor.cfg'
-    save_path = 'model_pb_corridor/'
+    save_path = 'model_corridor/'
 elif (game_map == 'health'):
     config_file_path = '../../scenarios/health_gathering.cfg'
-    save_path = 'model_pb_health/'
+    save_path = 'model_health/'
 elif (game_map == 'health_poison'):
     config_file_path = '../../scenarios/health_poison.cfg'
-    save_path = 'model_pb_health_poison_2/'
+    save_path = 'model_health_poison/'
 elif (game_map == 'health_poison_rewards'):
     config_file_path = '../../scenarios/health_poison_rewards.cfg'
-    save_path = 'model_pb_health_poison_rewards_4/'
+    save_path = 'model_hp_rewards/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_pb_health_poison_rewards_floor_7/'
+    save_path = 'model_hpr_floor/'
 else:
     print('ERROR: wrong game map.')
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     memory = ReplayMemory(capacity=replay_memory_size, game_resolution=game_resolution, num_channels=img_channels)
 
     sess = tf.Session()
-    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate)
+    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate, dropout_keep_prob)
     
     saver = tf.train.Saver()
 
