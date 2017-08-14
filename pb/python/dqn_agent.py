@@ -55,13 +55,13 @@ elif (game_map == 'health'):
     save_path = 'model_pb_health/'
 elif (game_map == 'health_poison'):
     config_file_path = '../../scenarios/health_poison.cfg'
-    save_path = 'model_pb_health_poison/'
+    save_path = 'model_pb_health_poison_2/'
 elif (game_map == 'health_poison_rewards'):
     config_file_path = '../../scenarios/health_poison_rewards.cfg'
     save_path = 'model_pb_health_poison_rewards_4/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_pb_health_poison_rewards_floor/'
+    save_path = 'model_pb_health_poison_rewards_floor_2/'
 else:
     print('ERROR: wrong game map.')
 
@@ -80,9 +80,9 @@ else:
 #episodes_to_watch = 5
 
 # training regime
-num_epochs = 70
-learning_steps_per_epoch = 15000
-test_episodes_per_epoch = 10
+num_epochs = 25
+learning_steps_per_epoch = 10000
+test_episodes_per_epoch = 30
 episodes_to_watch = 5
 
 # NN learning settings
@@ -101,6 +101,8 @@ discount_factor = 0.99
 replay_memory_size = 10000
 dropout_keep_prob = 0.7
 
+
+test_map = [842, 763, 279, 899, 964, 556, 55, 574, 909, 215, 824, 108, 310, 754, 566, 666, 951, 446, 12, 516, 850, 452, 210, 108, 756, 302, 972, 945, 460, 980]
 
 
 def make_sure_path_exists(path):
@@ -141,7 +143,7 @@ def perform_learning_step(epoch):
     if random() <= eps:
         a = randint(0, len(actions) - 1)
     else:
-        a = get_best_action(s1, 0.7)
+        a = get_best_action(s1, True)
     reward = game.make_action(actions[a], frame_repeat)
     
     isterminal = game.is_episode_finished()
@@ -152,12 +154,12 @@ def perform_learning_step(epoch):
     if memory.size > batch_size:
         s1, a, s2, isterminal, r = memory.get_sample(batch_size)
 
-        q2 = np.max(get_q_values(s2, 0.7), axis=1)
-        target_q = get_q_values(s1, 0.7)
+        q2 = np.max(get_q_values(s2, True), axis=1)
+        target_q = get_q_values(s1, True)
 
         target_q[np.arange(target_q.shape[0]), a] = r + discount_factor * (1-isterminal) * q2
 
-        learn(s1, target_q, 0.7)
+        learn(s1, target_q, True)
         
 
 def initialize_vizdoom(config_file_path):
@@ -242,7 +244,6 @@ if __name__ == '__main__':
             train_scores = []
 
             print('Training...')
-            dropout_keep_prob = 0.7
             game.new_episode()
             
             for learning_step in trange(learning_steps_per_epoch):
@@ -261,15 +262,14 @@ if __name__ == '__main__':
                   'min: %.1f,' % train_scores.min(), 'max: %.1f,' % train_scores.max())
 
             print('\nTesting...')
-            dropout_keep_prob = 1.0
             test_episode = []
             test_scores = []
             for test_episode in trange(test_episodes_per_epoch):        
-                game.set_seed(666)
+                game.set_seed(test_map[test_episode])
                 game.new_episode()
                 while not game.is_episode_finished():
                     state = preprocess(game.get_state().screen_buffer)
-                    best_action_index = get_best_action(state, 1.0)
+                    best_action_index = get_best_action(state, False)
                     
                     game.make_action(actions[best_action_index], frame_repeat)             
                 r = game.get_total_reward()
@@ -309,18 +309,16 @@ if __name__ == '__main__':
     game.set_mode(Mode.ASYNC_PLAYER)
     game.init()
     
-    dropout_keep_prob = 1.0
-    
     video_index = 1
     make_sure_path_exists(save_path + "records")
 
-    for _ in range(episodes_to_watch):
-        game.set_seed(666)
+    for i in range(episodes_to_watch):
+        game.set_seed(test_map[i])
         game.new_episode(save_path + "records/ep_" + str(video_index) + "_rec.lmp")
         video_index += 1
         while not game.is_episode_finished():
             state = preprocess(game.get_state().screen_buffer)
-            best_action_index = get_best_action(state, 1.0)
+            best_action_index = get_best_action(state, False)
             
             game.set_action(actions[best_action_index])
             for _ in range(frame_repeat):
