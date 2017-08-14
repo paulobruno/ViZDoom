@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 
 # game parameters
 game_map = 'health_poison_rewards_floor'
-game_resolution = (96, 128)
+game_resolution = (48, 64)
 img_channels = 1
-frame_repeat = 4
+frame_repeat = 8
 
 learn_model = False
 load_model = True
@@ -43,10 +43,10 @@ model_savefile = 'model.ckpt'
 
 if (game_map == 'basic'):
     config_file_path = '../../scenarios/basic.cfg'
-    save_path = 'model_pb_basic/'
+    save_path = 'temp/'
 elif (game_map == 'line'):
     config_file_path = '../../scenarios/defend_the_line.cfg'
-    save_path = 'model_pb_line_temp/'
+    save_path = 'temp/'
 elif (game_map == 'corridor'):
     config_file_path = '../../scenarios/deadly_corridor.cfg'
     save_path = 'model_pb_corridor/'
@@ -61,51 +61,34 @@ elif (game_map == 'health_poison_rewards'):
     save_path = 'model_pb_health_poison_rewards_4/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_pb_health_poison_rewards_floor_3/'
+    save_path = 'temp/'
 else:
     print('ERROR: wrong game map.')
 
-
-## Q-learning settings
-#discount_factor = 0.99
-#replay_memory_size = 10000
-
-## NN learning settings
-#batch_size = 64
-
-## training regime
-#num_epochs = 10
-#learning_steps_per_epoch = 1000
-#test_episodes_per_epoch = 10
-#episodes_to_watch = 5
-
 # training regime
-num_epochs = 20
-learning_steps_per_epoch = 7000
+num_epochs = 50
+learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 50
 episodes_to_watch = 5
 
 # NN learning settings
-batch_size = 32
+batch_size = 64
 
 # NN architecture
 conv_width = 4
 conv_height = 4
-features_layer1 = 32
-features_layer2 = 64
-features_layer3 = 128
-features_layer4 = 256
-fc_num_outputs = 1024
+features_layer1 = 64
+features_layer2 = 128
+fc_num_outputs = 512
 
 # Q-learning settings
-learning_rate = 0.0002
+learning_rate = 0.0001
 discount_factor = 0.99
-replay_memory_size = 100000
+replay_memory_size = 10000
 dropout_keep_prob = 0.7
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
-
 
 def make_sure_path_exists(path):
     try:
@@ -148,6 +131,9 @@ def perform_learning_step(eps):
         a = get_best_action(s1, True)
         
     reward = game.make_action(actions[a], frame_repeat)
+    if (reward > (2*frame_repeat)):
+        global fruits_per_episode_train
+        fruits_per_episode_train += 1
     
     isterminal = game.is_episode_finished()
     s2 = preprocess(game.get_state().screen_buffer) if not isterminal else None
@@ -167,12 +153,13 @@ def perform_learning_step(eps):
         
 def sim_perform_step(eps):
     
-    s1 = preprocess(game.get_state().screen_buffer)
-
     if random() <= eps:
-        return randint(0, len(actions) - 1), True
+        # is_random, random_action, -1 (only to complete number of args)
+        return 1, randint(0, len(actions) - 1), -1
     else:
-        return get_best_action(s1, True), False
+        s1 = preprocess(game.get_state().screen_buffer)
+        # is not random, action without dropout, action with dropout
+        return 0, get_best_action(s1, False), get_best_action(s1, True)
     
 
 def initialize_vizdoom(config_file_path):
@@ -191,17 +178,10 @@ def initialize_vizdoom(config_file_path):
 if __name__ == '__main__':
     game = initialize_vizdoom(config_file_path)
 
-#    if save_log:
-#        make_sure_path_exists(save_path)
-#        if load_model:
-#            log_file = open(save_path+log_savefile, 'a')
-#        else:
-#            log_file = open(save_path+log_savefile, 'w')            
-
-
     if save_log:
         make_sure_path_exists(save_path)
         if load_model:
+            debug_file = open(save_path+'debug.txt', 'a')
             log_file = open(save_path+log_savefile, 'a')
         else:
             debug_file = open(save_path+'debug.txt', 'w')
@@ -216,12 +196,12 @@ if __name__ == '__main__':
             print('Dropout probability: ' + str(dropout_keep_prob), file=log_file)
             print('Batch size: ' + str(batch_size), file=log_file)
             print('Convolution kernel size: (' + str(conv_width) + ',' + str(conv_height) + ')', file=log_file)
-            print('Layers size: ' + str(features_layer1) + ' ' + str(features_layer2) + ' ' + str(features_layer3) + ' ' + str(features_layer4), file=log_file)
+            print('Layers size: ' + str(features_layer1) + ' ' + str(features_layer2), file=log_file)
             print('Fully connected size: ' + str(fc_num_outputs), file=log_file)
             print('Epochs: ' + str(num_epochs), file=log_file)
             print('Learning steps: ' + str(learning_steps_per_epoch), file=log_file)
             print('Test episodes: ' + str(test_episodes_per_epoch), file=log_file)
-            print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max', file=log_file)
+            print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Over_3000_train Fruits_eaten_min Fruits_eaten_mean Fruits_eaten_max Testing_min Testing_mean Testing_max Over_3000_test Fruits_eaten_min Fruits_eaten_mean Fruits_eaten_max', file=log_file)
             log_file.flush()
 
 
@@ -234,8 +214,7 @@ if __name__ == '__main__':
     memory = ReplayMemory(capacity=replay_memory_size, game_resolution=game_resolution, num_channels=img_channels)
 
     sess = tf.Session()
-#    learn, get_q_values, get_best_action = create_network(sess, len(actions), game_resolution, img_channels)
-    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, features_layer3, features_layer4, fc_num_outputs, learning_rate)
+    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate)
     
     saver = tf.train.Saver()
 
@@ -263,6 +242,10 @@ if __name__ == '__main__':
             eps = exploration_rate(epoch)
             print('epoch: ' + str(epoch), file=debug_file)
             print('eps: ' + str(eps), file=debug_file)
+
+            fruits_per_episode_train = 0
+            fruits_eaten_train = []
+            above_three_train = 0
             
             for learning_step in trange(learning_steps_per_epoch):
                 perform_learning_step(eps)
@@ -271,6 +254,10 @@ if __name__ == '__main__':
                     train_scores.append(score)
                     game.new_episode()
                     train_episodes_finished += 1
+                    fruits_eaten_train.append(fruits_per_episode_train)                    
+                    fruits_per_episode_train = 0            
+                    if (score >= 3000):
+                        above_three_train += 1
 
             print('%d training episodes played.' % train_episodes_finished)
  
@@ -279,24 +266,35 @@ if __name__ == '__main__':
             print('Results: mean: %.1f±%.1f,' % (train_scores.mean(), train_scores.std()), \
                   'min: %.1f,' % train_scores.min(), 'max: %.1f,' % train_scores.max())
 
+            fruits_eaten_test = []
+            above_three_test = 0
+            
             print('\nTesting...')
             test_episode = []
             test_scores = []
             for test_episode in trange(test_episodes_per_epoch):        
                 game.set_seed(test_map[test_episode])
+                
+                fruits_per_episode_test = 0
+                
                 game.new_episode()
                 while not game.is_episode_finished():
                     state = preprocess(game.get_state().screen_buffer)
                     best_action_index = get_best_action(state, False)
                     
-                    # print action choices of last 10 epochs
-                    if (epoch > (num_epochs-12)):
-                        sim_action_index, is_random = sim_perform_step(eps)
-                        print(str(best_action_index) + ' ' + str(sim_action_index) + ' ' + str(is_random), file=debug_file)
+                    # print action choices of last 5 epochs
+                    if (epoch > (num_epochs-6)):
+                        is_random, action_without_drop, action_with_drop = sim_perform_step(eps)
+                        print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
                     
-                    game.make_action(actions[best_action_index], frame_repeat)             
+                    rew = game.make_action(actions[best_action_index], frame_repeat)
+                    if (rew > (2*frame_repeat)):
+                        fruits_per_episode_test += 1
                 r = game.get_total_reward()
                 test_scores.append(r)
+                fruits_eaten_test.append(fruits_per_episode_test)
+                if (r >= 3000):
+                    above_three_test += 1
 
             test_scores = np.array(test_scores)
             print('Results: mean: %.1f±%.1f,' % (test_scores.mean(), test_scores.std()), \
@@ -311,12 +309,16 @@ if __name__ == '__main__':
             total_elapsed_time = (time() - time_start) / 60.0
             print('Total elapsed time: %.2f minutes' % total_elapsed_time)
 
+            fruits_eaten_train = np.array(fruits_eaten_train)
+            fruits_eaten_test = np.array(fruits_eaten_test)
 
             # log to file
             if save_log:
                 print(total_elapsed_time, train_episodes_finished, 
-                      train_scores.min(), train_scores.mean(), train_scores.max(), 
-                      test_scores.min(), test_scores.mean(), test_scores.max(), file=log_file)
+                      train_scores.min(), train_scores.mean(), train_scores.max(), above_three_train,
+                      fruits_eaten_train.min(), fruits_eaten_train.mean(), fruits_eaten_train.max(),
+                      test_scores.min(), test_scores.mean(), test_scores.max(), above_three_test,
+                      fruits_eaten_test.min(), fruits_eaten_test.mean(), fruits_eaten_test.max(), file=log_file)
                 log_file.flush()
 
     if save_log:
@@ -327,7 +329,7 @@ if __name__ == '__main__':
     print('======================================')
     print('Training finished. It\'s time to watch!')
 
-    raw_input('Press Enter to continue...') # in python3 use input() instead
+#    raw_input('Press Enter to continue...') # in python3 use input() instead
 
     game.set_window_visible(True)
     game.set_mode(Mode.ASYNC_PLAYER)
