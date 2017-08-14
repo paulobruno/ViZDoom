@@ -25,8 +25,8 @@ game_resolution = (48, 64)
 img_channels = 1
 frame_repeat = 8
 
-learn_model = False
-load_model = True
+learn_model = True
+load_model = False
 
 
 if (learn_model):
@@ -80,8 +80,8 @@ else:
 #episodes_to_watch = 5
 
 # training regime
-num_epochs = 25
-learning_steps_per_epoch = 10000
+num_epochs = 1
+learning_steps_per_epoch = 1000
 test_episodes_per_epoch = 30
 episodes_to_watch = 5
 
@@ -104,7 +104,6 @@ dropout_keep_prob = 0.7
 
 test_map = [842, 763, 279, 899, 964, 556, 55, 574, 909, 215, 824, 108, 310, 754, 566, 666, 951, 446, 12, 516, 850, 452, 210, 108, 756, 302, 972, 945, 460, 980]
 
-
 def make_sure_path_exists(path):
     try:
         os.makedirs(path)
@@ -118,32 +117,33 @@ def preprocess(image):
     img = img.astype(np.float32)
     return img
 
-def perform_learning_step(epoch):
-    
-    def exploration_rate(epoch):
-        start_eps = 1.0
-        end_eps = 0.1
-        const_eps_epochs = 0.1 * num_epochs
-        eps_decay_epochs = 0.6 * num_epochs
+def exploration_rate(epoch):
+    start_eps = 1.0
+    end_eps = 0.1
+    const_eps_epochs = 0.1 * num_epochs
+    eps_decay_epochs = 0.6 * num_epochs
 
-        if load_model:
-            return end_eps
+    if load_model:
+        return end_eps
+    else:
+        if epoch < const_eps_epochs:
+            return start_eps
+        elif epoch < eps_decay_epochs:
+            return start_eps - (epoch - const_eps_epochs) / \
+                               (eps_decay_epochs - const_eps_epochs) * (start_eps - end_eps)
         else:
-            if epoch < const_eps_epochs:
-                return start_eps
-            elif epoch < eps_decay_epochs:
-                return start_eps - (epoch - const_eps_epochs) / \
-                                   (eps_decay_epochs - const_eps_epochs) * (start_eps - end_eps)
-            else:
-                return end_eps
-
+            return end_eps
+                
+def perform_learning_step(eps):
+    
     s1 = preprocess(game.get_state().screen_buffer)
 
-    eps = exploration_rate(epoch)
+#    eps = epsilon_list(epoch)
     if random() <= eps:
         a = randint(0, len(actions) - 1)
     else:
         a = get_best_action(s1, True)
+        
     reward = game.make_action(actions[a], frame_repeat)
     
     isterminal = game.is_episode_finished()
@@ -246,8 +246,10 @@ if __name__ == '__main__':
             print('Training...')
             game.new_episode()
             
+            eps = exploration_rate(epoch)
+            
             for learning_step in trange(learning_steps_per_epoch):
-                perform_learning_step(epoch)
+                perform_learning_step(eps)
                 if game.is_episode_finished():
                     score = game.get_total_reward()                    
                     train_scores.append(score)
@@ -313,7 +315,6 @@ if __name__ == '__main__':
     make_sure_path_exists(save_path + "records")
 
     for i in range(episodes_to_watch):
-        game.set_seed(test_map[i])
         game.new_episode(save_path + "records/ep_" + str(video_index) + "_rec.lmp")
         video_index += 1
         while not game.is_episode_finished():
