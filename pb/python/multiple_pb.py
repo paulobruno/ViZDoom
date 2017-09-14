@@ -70,8 +70,8 @@ else:
 
 
 # training regime
-num_epochs = 4
-train_episodes_per_epoch = 100
+num_epochs = 20
+train_episodes_per_epoch = 120
 learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 20
 episodes_to_watch = 5
@@ -169,7 +169,7 @@ def player1():
     print('Initializing doom...')
     game = DoomGame()
     game.load_config(config_file_path)
-    game.set_window_visible(True)
+    game.set_window_visible(False)
     game.set_mode(Mode.PLAYER)
     game.set_screen_format(ScreenFormat.GRAY8)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
@@ -246,8 +246,10 @@ def player1():
 
                 while not game.is_episode_finished():
                     if game.is_player_dead():
-                        game.respawn_player()                
-                    perform_learning_step(eps)
+                        game.respawn_player()
+                        
+                    if not game.is_episode_finished():
+                        perform_learning_step(eps)
                                             
                 score = game.get_game_variable(GameVariable.FRAGCOUNT)
                 train_scores.append(score)
@@ -279,11 +281,12 @@ def player1():
                 while not game.is_episode_finished():
                     if game.is_player_dead():
                         game.respawn_player()
-                        
-                    state = preprocess(game.get_state().screen_buffer)
-                    best_action_index = get_best_action(state, False)
-                                        
-                    game.make_action(actions[best_action_index], frame_repeat)
+                    
+                    if not game.is_episode_finished():    
+                        state = preprocess(game.get_state().screen_buffer)
+                        best_action_index = get_best_action(state, False)
+                                            
+                        game.make_action(actions[best_action_index], frame_repeat)
 
                 r = game.get_game_variable(GameVariable.FRAGCOUNT)
                 test_scores.append(r)
@@ -326,7 +329,7 @@ def player2():
     game.load_config('../../scenarios/multi_duel.cfg')
     game.add_game_args("-join 127.0.0.1")
     game.add_game_args("+name Player2 +colorset 3")
-    game.set_window_visible(True)
+    game.set_window_visible(False)
     game.set_mode(Mode.PLAYER)
 
     game.init()
