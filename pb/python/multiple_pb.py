@@ -33,6 +33,7 @@ frame_repeat = 8
 
 learn_model = True
 load_model = False
+view_window = True
 
 
 if (learn_model):
@@ -63,15 +64,15 @@ elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
     save_path = 'model_hpr_floor_'
 elif (game_map == 'multiplayer'):
-    config_file_path = '../../scenarios/multi_duel.cfg'
+    config_file_path = '../../scenarios/death_basic.cfg'
     save_path = 'model_multiplayer_'
 else:
     print('ERROR: wrong game map.')
 
 
 # training regime
-num_epochs = 20
-train_episodes_per_epoch = 120
+num_epochs = 15
+train_episodes_per_epoch = 100
 learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 20
 episodes_to_watch = 5
@@ -169,7 +170,7 @@ def player1():
     print('Initializing doom...')
     game = DoomGame()
     game.load_config(config_file_path)
-    game.set_window_visible(False)
+    game.set_window_visible(view_window)
     game.set_mode(Mode.PLAYER)
     game.set_screen_format(ScreenFormat.GRAY8)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
@@ -326,10 +327,10 @@ def player2():
 
     # game.load_config('../config/basic.cfg')
     # or
-    game.load_config('../../scenarios/multi_duel.cfg')
+    game.load_config(config_file_path)
     game.add_game_args("-join 127.0.0.1")
     game.add_game_args("+name Player2 +colorset 3")
-    game.set_window_visible(False)
+    game.set_window_visible(view_window)
     game.set_mode(Mode.PLAYER)
 
     game.init()
@@ -345,7 +346,10 @@ def player2():
                 if game.is_player_dead():
                     game.respawn_player()
 
-                game.make_action(choice(actions))
+                # player 2 artificially static
+                game.make_action(actions[0])
+                game.make_action(actions[1])
+                #game.make_action(choice(actions))
 
 #            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
 
