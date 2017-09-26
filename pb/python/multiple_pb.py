@@ -26,14 +26,14 @@ from multiprocessing import Process
 
 
 # game parameters
-game_map = 'multiplayer'
-game_resolution = (24, 32)
+game_map = 'death_basic'
+game_resolution = (48, 64)
 img_channels = 1
 frame_repeat = 8
 
 learn_model = True
 load_model = False
-view_window = True
+view_window = False
 
 
 if (learn_model):
@@ -64,17 +64,20 @@ elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
     save_path = 'model_hpr_floor_'
 elif (game_map == 'multiplayer'):
+    config_file_path = '../../scenarios/multi_duel_floor.cfg'
+    save_path = 'model_multi_duel_'
+elif (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    save_path = 'model_multiplayer_'
+    save_path = 'model_death_basic_'
 else:
     print('ERROR: wrong game map.')
 
 
 # training regime
-num_epochs = 15
-train_episodes_per_epoch = 100
+num_epochs = 50
+train_episodes_per_epoch = 10
 learning_steps_per_epoch = 10000
-test_episodes_per_epoch = 20
+test_episodes_per_epoch = 30
 episodes_to_watch = 5
 
 # NN learning settings
@@ -92,6 +95,8 @@ learning_rate = 0.0001
 discount_factor = 0.99
 replay_memory_size = 5000
 dropout_keep_prob = 0.7
+
+reward_multiplier = 20;
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
@@ -142,7 +147,7 @@ def player1():
             a = get_best_action(s1, True)
             
         #print('reward...')
-        reward = game.make_action(actions[a], frame_repeat)
+        reward = reward_multiplier * game.make_action(actions[a], frame_repeat)
         
         #print('temrinal...')
         isterminal = game.is_episode_finished()
@@ -362,7 +367,8 @@ def player2():
                 if game.is_player_dead():
                     game.respawn_player()
 
-                game.make_action(choice(actions))
+                game.make_action(actions[0])
+                game.make_action(actions[1])
 
 #            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
 
