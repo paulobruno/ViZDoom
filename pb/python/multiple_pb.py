@@ -68,14 +68,14 @@ elif (game_map == 'multiplayer'):
     save_path = 'model_multi_duel_'
 elif (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    save_path = 'model_death_basic_'
+    save_path = 'model_death_basic_2_'
 else:
     print('ERROR: wrong game map.')
 
 
 # training regime
-num_epochs = 50
-train_episodes_per_epoch = 10
+num_epochs = 30
+train_episodes_per_epoch = 200
 learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 30
 episodes_to_watch = 5
@@ -96,7 +96,7 @@ discount_factor = 0.99
 replay_memory_size = 5000
 dropout_keep_prob = 0.7
 
-reward_multiplier = 20;
+reward_multiplier = 60;
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
@@ -147,7 +147,10 @@ def player1():
             a = get_best_action(s1, True)
             
         #print('reward...')
-        reward = reward_multiplier * game.make_action(actions[a], frame_repeat)
+        last_frags = game.get_game_variable(GameVariable.FRAGCOUNT)
+        game.make_action(actions[a], frame_repeat)
+        current_frags = game.get_game_variable(GameVariable.FRAGCOUNT)
+        reward = reward_multiplier * (current_frags - last_frags) - 1.0
         
         #print('temrinal...')
         isterminal = game.is_episode_finished()
@@ -257,7 +260,8 @@ def player1():
                     if not game.is_episode_finished():
                         perform_learning_step(eps)
                                             
-                score = game.get_game_variable(GameVariable.FRAGCOUNT)
+                score = reward_multiplier * game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
+#                score = game.get_total_reward()
                 train_scores.append(score)
                 train_episodes_finished += 1
                 
@@ -281,7 +285,7 @@ def player1():
 
             print('\nTesting...')
             test_scores = []
-            for test_episode in trange(test_episodes_per_epoch):        
+            for test_episode in trange(test_episodes_per_epoch):
                 game.set_seed(test_map[test_episode])
                 
                 while not game.is_episode_finished():
@@ -294,7 +298,8 @@ def player1():
                                             
                         game.make_action(actions[best_action_index], frame_repeat)
 
-                r = game.get_game_variable(GameVariable.FRAGCOUNT)
+                r = reward_multiplier * game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
+#                r = game.get_total_reward() 
                 test_scores.append(r)
                 
                 game.new_episode()
@@ -362,6 +367,7 @@ def player2():
             
         
         for i in range(test_episodes_per_epoch):
+            game.set_seed(test_map[i])
             
             while not game.is_episode_finished():
                 if game.is_player_dead():
