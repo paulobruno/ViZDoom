@@ -68,17 +68,17 @@ elif (game_map == 'multiplayer'):
     save_path = 'model_multi_duel_'
 elif (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    save_path = 'model_death_basic_2_'
+    save_path = 'model_death_basic_3_'
 else:
     print('ERROR: wrong game map.')
 
 
 # training regime
-num_epochs = 30
-train_episodes_per_epoch = 200
+num_epochs = 25
+train_episodes_per_epoch = 50
 learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 30
-episodes_to_watch = 5
+episodes_to_watch = 3
 
 # NN learning settings
 batch_size = 64
@@ -326,10 +326,48 @@ def player1():
                       test_scores.min(), test_scores.mean(), test_scores.max(), file=log_file)
                 log_file.flush()
 
+
     if save_log:
         log_file.close()
 
     game.close()
+    print('======================================')
+    print('Training finished. It\'s time to watch!')
+
+#    raw_input('Press Enter to continue...') # in python3 use input() instead
+
+    game.set_window_visible(True)
+    game.set_mode(Mode.ASYNC_PLAYER)
+    
+    video_index = 1
+    make_sure_path_exists(save_path_player1 + "records")
+
+    for i in range(episodes_to_watch):
+        game.clear_game_args()
+        game.add_game_args("-host 2 -deathmatch +timelimit 1 +sv_spawnfarthest 1")
+        game.add_game_args("+name Player1 +colorset 0")
+        game.add_game_args("-record " + save_path_player1 + "records/ep_" + str(video_index) + "_rec.lmp")
+        video_index += 1
+        
+        game.init()    
+        
+        while not game.is_episode_finished():
+            if game.is_player_dead():
+                game.respawn_player()
+            
+            if not game.is_episode_finished():
+                state = preprocess(game.get_state().screen_buffer)
+                best_action_index = get_best_action(state, False)
+                                    
+                game.set_action(actions[best_action_index])
+                for _ in range(frame_repeat):
+                    game.advance_action()
+
+        sleep(1.0)
+        score = game.get_game_variable(GameVariable.FRAGCOUNT)
+        print('Total score: ', score)
+
+        game.close()
 
 
 def player2():
@@ -345,42 +383,69 @@ def player2():
 
     game.init()
 
+    save_path_player2 = save_path + 'player2/'
+
     actions = [[True, False, False], [False, True, False], [False, False, True]]
 
+    if not skip_learning:
+        for _ in range(num_epochs):
 
-    for _ in range(num_epochs):
+            for i in range(train_episodes_per_epoch):
+                
+                while not game.is_episode_finished():
+                    if game.is_player_dead():
+                        game.respawn_player()
 
-        for i in range(train_episodes_per_epoch):
+                    # player 2 artificially static
+                    #game.make_action(actions[0])
+                    #game.make_action(actions[1])
+                    game.make_action(choice(actions))
+
+    #            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
+
+                game.new_episode()
+                
             
-            while not game.is_episode_finished():
-                if game.is_player_dead():
-                    game.respawn_player()
+            for i in range(test_episodes_per_epoch):
+                game.set_seed(test_map[i])
+                
+                while not game.is_episode_finished():
+                    if game.is_player_dead():
+                        game.respawn_player()
 
-                # player 2 artificially static
-                game.make_action(actions[0])
-                game.make_action(actions[1])
-                #game.make_action(choice(actions))
+                    #game.make_action(actions[0])
+                    #game.make_action(actions[1])
+                    game.make_action(choice(actions))
 
-#            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
+    #            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
 
-            game.new_episode()
-            
-        
-        for i in range(test_episodes_per_epoch):
-            game.set_seed(test_map[i])
-            
-            while not game.is_episode_finished():
-                if game.is_player_dead():
-                    game.respawn_player()
-
-                game.make_action(actions[0])
-                game.make_action(actions[1])
-
-#            print("Player2 frags:", game.get_game_variable(GameVariable.FRAGCOUNT))
-
-            game.new_episode()
+                game.new_episode()
 
     game.close()
+
+    game.set_window_visible(True)
+    game.set_mode(Mode.ASYNC_PLAYER)
+           
+    for i in range(episodes_to_watch):
+        game.clear_game_args()
+        game.add_game_args("-join 127.0.0.1")
+        game.add_game_args("+name Player2 +colorset 3")
+        
+        game.init()
+            
+        while not game.is_episode_finished():
+            if game.is_player_dead():
+                game.respawn_player()
+
+#            game.make_action(actions[0])
+#            game.make_action(actions[1])
+            game.make_action(choice(actions))
+
+        sleep(1.0)
+        score_p2 = game.get_game_variable(GameVariable.FRAGCOUNT)
+        print('Total score P2: ', score_p2)
+
+        game.close()
 
 
 # p1 = Thread(target = player1)
