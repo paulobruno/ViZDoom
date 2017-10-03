@@ -26,7 +26,7 @@ from multiprocessing import Process
 
 
 # game parameters
-game_map = 'death_basic'
+game_map = 'md_floor'
 game_resolution = (48, 64)
 img_channels = 1
 frame_repeat = 8
@@ -68,14 +68,17 @@ elif (game_map == 'multiplayer'):
     save_path = 'model_multi_duel_'
 elif (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    save_path = 'model_death_basic_3_'
+    save_path = 'model_death_basic_5'
+elif (game_map == 'md_floor'):
+    config_file_path = '../../scenarios/md_floor.cfg'
+    save_path = 'model_mdfloor_'
 else:
     print('ERROR: wrong game map.')
 
 
 # training regime
-num_epochs = 25
-train_episodes_per_epoch = 50
+num_epochs = 30
+train_episodes_per_epoch = 200
 learning_steps_per_epoch = 10000
 test_episodes_per_epoch = 30
 episodes_to_watch = 3
@@ -385,7 +388,8 @@ def player2():
 
     save_path_player2 = save_path + 'player2/'
 
-    actions = [[True, False, False], [False, True, False], [False, False, True]]
+#    actions = [[True, False, False], [False, True, False], [False, False, True]]
+    actions = [[True, False, False], [False, True, False]]
 
     if not skip_learning:
         for _ in range(num_epochs):

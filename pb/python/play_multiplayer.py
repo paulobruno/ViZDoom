@@ -15,7 +15,7 @@ from vizdoom import *
 
 episodes = 3
 
-folder_path = "model_death_basic_2_player1/records/"
+folder_path = "model_death_basic_4_player1/records/"
 
 game = DoomGame()
 
@@ -43,10 +43,10 @@ for i in range(episodes):
 
     # only one POV per replay
     # player 1 POV
-    #game.replay_episode(folder_path + "ep_" + str(i+1) + "_rec.lmp", 1)
+    game.replay_episode(folder_path + "ep_" + str(i+1) + "_rec.lmp", 1)
 
     # player 2 POV
-    game.replay_episode(folder_path + "ep_" + str(i+1) + "_rec.lmp", 2)
+#    game.replay_episode(folder_path + "ep_" + str(i+1) + "_rec.lmp", 2)
 
     while not game.is_episode_finished():
         # Use advance_action instead of make_action.
