@@ -33,6 +33,7 @@ load_model = config.getboolean('model', 'load_model')
 view_window = config.getboolean('model', 'view_window')
 log_savefile = config.get('model', 'log_savefile')
 model_savefile = config.get('model', 'model_savefile')
+path_num = config.get('model', 'save_path_num')
 
 num_epochs = config.getint('regime', 'num_epochs')
 train_episodes_per_epoch = config.getint('regime', 'train_episodes_per_epoch')
@@ -76,6 +77,9 @@ elif (game_map == 'health_poison_rewards'):
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
     save_path = 'model_hpr_floor_' + str(path_num) + '/'
+elif (game_map == 'new_death'):
+    config_file_path = '../../scenarios/new_death.cfg'
+    save_path = 'model_new_death_' + str(path_num) + '/'
 else:
     print('ERROR: wrong game map.')
 
