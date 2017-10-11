@@ -16,16 +16,34 @@ import skimage.color, skimage.transform
 import tensorflow as tf
 import os
 import errno
+import ConfigParser
 
+# read configuration from file
+config = ConfigParser.RawConfigParser()
+config.read('settings.cfg')
 
-# game parameters
-game_map = 'basic'
-game_resolution = (48, 64)
-img_channels = 1
-frame_repeat = 8
+game_map = config.get('game', 'map')
+game_w = config.getint('game', 'resolution_width')
+game_h = config.getint('game', 'resolution_height')
+game_resolution = (game_h, game_w)
+img_channels = config.getint('game', 'img_channels')
 
-learn_model = True
-load_model = False
+learn_model = config.getboolean('model', 'learn_model')
+load_model = config.getboolean('model', 'load_model')
+view_window = config.getboolean('model', 'view_window')
+log_savefile = config.get('model', 'log_savefile')
+model_savefile = config.get('model', 'model_savefile')
+
+num_epochs = config.getint('regime', 'num_epochs')
+train_episodes_per_epoch = config.getint('regime', 'train_episodes_per_epoch')
+learning_steps_per_epoch = config.getint('regime', 'learning_steps_per_epoch')
+test_episodes_per_epoch = config.getint('regime', 'test_episodes_per_epoch')
+episodes_to_watch = config.getint('regime', 'episodes_to_watch')
+
+frame_repeat = config.getint('learning', 'frame_repeat')
+batch_size = config.getint('learning', 'batch_size')
+discount_factor = config.getfloat('learning', 'discount_factor')
+replay_memory_size = config.getint('learning', 'replay_memory_size')
 
 
 if (learn_model):
@@ -37,55 +55,30 @@ else:
     save_log = False
     skip_learning = True
     
-log_savefile = 'log.txt'
-model_savefile = 'model.ckpt'
-
 if (game_map == 'basic'):
     config_file_path = '../../scenarios/basic.cfg'
-    save_path = 'model_basic/'
+    save_path = 'model_basic_' + str(path_num) + '/'
 elif (game_map == 'line'):
     config_file_path = '../../scenarios/defend_the_line.cfg'
-    save_path = 'model_line/'
+    save_path = 'model_line_' + str(path_num) + '/'
 elif (game_map == 'corridor'):
     config_file_path = '../../scenarios/deadly_corridor.cfg'
-    save_path = 'model_corridor/'
+    save_path = 'model_corridor_' + str(path_num) + '/'
 elif (game_map == 'health'):
     config_file_path = '../../scenarios/health_gathering.cfg'
-    save_path = 'model_health/'
+    save_path = 'model_health_' + str(path_num) + '/'
 elif (game_map == 'health_poison'):
     config_file_path = '../../scenarios/health_poison.cfg'
-    save_path = 'model_health_poison/'
+    save_path = 'model_health_poison_' + str(path_num) + '/'
 elif (game_map == 'health_poison_rewards'):
     config_file_path = '../../scenarios/health_poison_rewards.cfg'
-    save_path = 'model_hp_rewards/'
+    save_path = 'model_hp_rewards_' + str(path_num) + '/'
 elif (game_map == 'health_poison_rewards_floor'):
     config_file_path = '../../scenarios/health_poison_rewards_floor.cfg'
-    save_path = 'model_hpr_floor/'
+    save_path = 'model_hpr_floor_' + str(path_num) + '/'
 else:
     print('ERROR: wrong game map.')
 
-
-# training regime
-num_epochs = 50
-learning_steps_per_epoch = 10000
-test_episodes_per_epoch = 50
-episodes_to_watch = 5
-
-# NN learning settings
-batch_size = 64
-
-# NN architecture
-conv_width = 4
-conv_height = 4
-features_layer1 = 64
-features_layer2 = 128
-fc_num_outputs = 512
-
-# Q-learning settings
-learning_rate = 0.0001
-discount_factor = 0.99
-replay_memory_size = 10000
-dropout_keep_prob = 0.7
 
 # 50 random seeds previously generated to use during test
 test_map = [48, 839, 966, 520, 134, 713, 939, 591, 666, 286, 552, 843, 940, 290, 826, 321, 476, 278, 831, 685, 473, 113, 795, 32, 90, 631, 587, 350, 117, 577, 394, 34, 815, 925, 148, 584, 890, 209, 466, 980, 246, 406, 240, 214, 288, 400, 787, 236, 465, 836]
@@ -163,7 +156,7 @@ def initialize_vizdoom(config_file_path):
     print('Initializing doom...')
     game = DoomGame()
     game.load_config(config_file_path)
-    game.set_window_visible(False)
+    game.set_window_visible(view_window)
     game.set_mode(Mode.PLAYER)
     game.set_screen_format(ScreenFormat.GRAY8)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
@@ -178,29 +171,18 @@ if __name__ == '__main__':
     if save_log:
         make_sure_path_exists(save_path)
         if load_model:
-            debug_file = open(save_path+'debug.txt', 'a')
+            #debug_file = open(save_path+'debug.txt', 'a')
             log_file = open(save_path+log_savefile, 'a')
         else:
-            debug_file = open(save_path+'debug.txt', 'w')
+            #debug_file = open(save_path+'debug.txt', 'w')
             log_file = open(save_path+log_savefile, 'w')
-            print('Map: ' + game_map, file=log_file)
-            print('Resolution: ' + str(game_resolution), file=log_file)
-            print('Image channels: ' + str(img_channels), file=log_file)
-            print('Frame repeat: ' + str(frame_repeat), file=log_file)
-            print('Learning rate: ' + str(learning_rate), file=log_file)
-            print('Discount: ' + str(discount_factor), file=log_file)
-            print('Replay memory size: ' + str(replay_memory_size), file=log_file)
-            print('Dropout probability: ' + str(dropout_keep_prob), file=log_file)
-            print('Batch size: ' + str(batch_size), file=log_file)
-            print('Convolution kernel size: (' + str(conv_width) + ',' + str(conv_height) + ')', file=log_file)
-            print('Layers size: ' + str(features_layer1) + ' ' + str(features_layer2), file=log_file)
-            print('Fully connected size: ' + str(fc_num_outputs), file=log_file)
-            print('Epochs: ' + str(num_epochs), file=log_file)
-            print('Learning steps: ' + str(learning_steps_per_epoch), file=log_file)
-            print('Test episodes: ' + str(test_episodes_per_epoch), file=log_file)
-            print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max', file=log_file)
+            config_file = open('settings.cfg', 'r')
+            for line in config_file:
+                log_file.write(line,)
+            config_file.close()
+            log_file.write('\n')
+            log_file.write('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max\n')
             log_file.flush()
-
 
     num_actions = game.get_available_buttons_size()
     actions = np.zeros((num_actions, num_actions), dtype=np.int32)
@@ -211,7 +193,7 @@ if __name__ == '__main__':
     memory = ReplayMemory(capacity=replay_memory_size, game_resolution=game_resolution, num_channels=img_channels)
 
     sess = tf.Session()
-    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate, dropout_keep_prob)
+    learn, get_q_values, get_best_action = create_network(sess, len(actions))
     
     saver = tf.train.Saver()
 
@@ -237,8 +219,8 @@ if __name__ == '__main__':
             game.new_episode()
             
             eps = exploration_rate(epoch)
-            print('epoch: ' + str(epoch), file=debug_file)
-            print('eps: ' + str(eps), file=debug_file)
+#            print('epoch: ' + str(epoch), file=debug_file)
+#            print('eps: ' + str(eps), file=debug_file)
             
             for learning_step in trange(learning_steps_per_epoch):
                 perform_learning_step(eps)
@@ -268,7 +250,7 @@ if __name__ == '__main__':
                     # print action choices of last 5 epochs
                     if (epoch > (num_epochs-6)):
                         is_random, action_without_drop, action_with_drop = sim_perform_step(eps)
-                        print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
+                        #print(str(is_random) + ' ' + str(action_without_drop) + ' ' + str(action_with_drop), file=debug_file)
                     
                     game.make_action(actions[best_action_index], frame_repeat)             
                 r = game.get_total_reward()
@@ -297,7 +279,7 @@ if __name__ == '__main__':
 
     if save_log:
         log_file.close()
-        debug_file.close()
+        #debug_file.close()
 
     game.close()
     print('======================================')
