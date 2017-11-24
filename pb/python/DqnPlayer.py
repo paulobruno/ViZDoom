@@ -99,7 +99,7 @@ elif (game_map == 'multiplayer'):
     config_file_path = '../../scenarios/multi_duel_floor.cfg'
     save_path = 'model_multi_duel_'
 elif (game_map == 'death_basic'):
-    config_file_path = '../../scenarios/death_basic_spawn.cfg'
+    config_file_path = '../../scenarios/death_basic.cfg'
     save_path = 'model_death_basic_multi_'
 elif (game_map == 'md_floor'):
     config_file_path = '../../scenarios/md_floor.cfg'
