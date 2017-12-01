@@ -1,29 +1,31 @@
 import tensorflow as tf
 import ConfigParser
 
+def create_network(session, num_available_actions, settings_file):
 
-config = ConfigParser.RawConfigParser()
-config.read('settings.cfg')
+    # read config file
+    config = ConfigParser.RawConfigParser()
+    config.read(settings_file)
 
-game_w = config.getint('game', 'resolution_width')
-game_h = config.getint('game', 'resolution_height')
-game_resolution = (game_h, game_w)
-img_channels = config.getint('game', 'img_channels')
+    game_w = config.getint('game', 'resolution_width')
+    game_h = config.getint('game', 'resolution_height')
+    game_resolution = (game_h, game_w)
+    img_channels = config.getint('game', 'img_channels')
 
-conv_width = config.getint('network', 'conv_width')
-conv_height = config.getint('network', 'conv_height')
-fc_num_outputs = config.getint('network', 'fc_num_outputs')
-num_feat_layers = config.getint('network', 'num_feat_layers')
+    conv_width = config.getint('network', 'conv_width')
+    conv_height = config.getint('network', 'conv_height')
+    fc_num_outputs = config.getint('network', 'fc_num_outputs')
+    num_feat_layers = config.getint('network', 'num_feat_layers')
 
-features_layer = []
-for i in range(num_feat_layers):
-    features_layer.append(config.getint('network', 'features_layer_' + str(i+1)))
+    features_layer = []
+    for i in range(num_feat_layers):
+        features_layer.append(config.getint('network', 'features_layer_' + str(i+1)))
 
-learning_rate = config.getfloat('network', 'learning_rate')
-drop_prob = config.getfloat('network', 'dropout_keep_prob')
+    learning_rate = config.getfloat('network', 'learning_rate')
+    drop_prob = config.getfloat('network', 'dropout_keep_prob')
 
 
-def create_network(session, num_available_actions):
+    # create the network architecture
 
     s1_ = tf.placeholder(tf.float32, [None] + list(game_resolution) + [img_channels], name='State')
     target_q_ = tf.placeholder(tf.float32, [None, num_available_actions], name='TargetQ')

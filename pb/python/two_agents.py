@@ -12,8 +12,11 @@ from multiprocessing import Process
 # from threading import Thread
 
 if __name__ == '__main__':
-    player1 = DqnPlayer(name='Player1', colorset='0', is_host=True)
-    player2 = DqnPlayer(name='Player2', colorset='3', is_host=False)
+
+    config_file = 'settings.cfg'
+
+    player1 = DqnPlayer(name='Player1', colorset='0', is_host=True, settings_file=config_file)
+    player2 = DqnPlayer(name='Player2', colorset='3', is_host=False, settings_file=config_file)
     
     p1 = Process(target=player1.run)
     p1.start()
