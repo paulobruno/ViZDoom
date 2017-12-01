@@ -4,7 +4,6 @@
 from __future__ import division
 from __future__ import print_function
 
-from random import choice
 from vizdoom import *
 from time import time, sleep
 from tqdm import trange
@@ -12,7 +11,6 @@ from shutil import copyfile
 from ReplayMemory import *
 from DeepNetwork import *
 
-import itertools as it
 import numpy as np
 import skimage.color, skimage.transform
 import tensorflow as tf
@@ -42,11 +40,9 @@ load_model = config.getboolean('model', 'load_model')
 view_window = config.getboolean('model', 'view_window')
 log_savefile = config.get('model', 'log_savefile')
 model_savefile = config.get('model', 'model_savefile')
-path_num = config.get('model', 'save_path_num')
 
 num_epochs = config.getint('regime', 'num_epochs')
 train_episodes_per_epoch = config.getint('regime', 'train_episodes_per_epoch')
-learning_steps_per_epoch = config.getint('regime', 'learning_steps_per_epoch')
 test_episodes_per_epoch = config.getint('regime', 'test_episodes_per_epoch')
 episodes_to_watch = config.getint('regime', 'episodes_to_watch')
 
@@ -263,7 +259,7 @@ class DqnPlayer():
                         if not self.game.is_episode_finished():
                             self.perform_learning_step(eps)
                                                 
-                    score = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
+                    score = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT)
                     train_scores.append(score)
                     train_episodes_finished += 1
                     
@@ -291,7 +287,7 @@ class DqnPlayer():
                                                 
                             self.game.make_action(self.actions[best_action_index], frame_repeat)
                     
-                    r = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
+                    r = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT)
                     test_scores.append(r)
 
                     self.game.new_episode()
