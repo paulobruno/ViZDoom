@@ -26,8 +26,8 @@ from multiprocessing import Process
 
 
 # game parameters
-game_map = 'md_floor'
-game_resolution = (48, 64)
+game_map = 'death_basic'
+game_resolution = (12, 16)
 img_channels = 1
 frame_repeat = 8
 
@@ -68,7 +68,7 @@ elif (game_map == 'multiplayer'):
     save_path = 'model_multi_duel_'
 elif (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    save_path = 'model_death_basic_5'
+    save_path = 'model_death_basic_random'
 elif (game_map == 'md_floor'):
     config_file_path = '../../scenarios/md_floor.cfg'
     save_path = 'model_mdfloor_'
@@ -77,11 +77,11 @@ else:
 
 
 # training regime
-num_epochs = 30
-train_episodes_per_epoch = 200
+num_epochs = 50
+train_episodes_per_epoch = 500
 learning_steps_per_epoch = 10000
-test_episodes_per_epoch = 30
-episodes_to_watch = 3
+test_episodes_per_epoch = 50
+episodes_to_watch = 5
 
 # NN learning settings
 batch_size = 64
@@ -96,7 +96,7 @@ fc_num_outputs = 512
 # Q-learning settings
 learning_rate = 0.0001
 discount_factor = 0.99
-replay_memory_size = 5000
+replay_memory_size = 100000
 dropout_keep_prob = 0.7
 
 reward_multiplier = 60;
@@ -227,7 +227,7 @@ def player1():
 
     sess = tf.Session()   
         
-    learn, get_q_values, get_best_action, simple_q = create_network(sess, len(actions), game_resolution, img_channels, conv_width, conv_height, features_layer1, features_layer2, fc_num_outputs, learning_rate, dropout_keep_prob)
+    learn, get_q_values, get_best_action = create_network(sess, num_actions)
     
     saver = tf.train.Saver()
     

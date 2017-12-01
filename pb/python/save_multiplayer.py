@@ -20,7 +20,8 @@ game_map = 'death_basic'
 
 if (game_map == 'death_basic'):
     config_file_path = '../../scenarios/death_basic.cfg'
-    load_path = 'death_basic/'
+#    load_path = 'death_basic/player1/'
+    load_path = 'death_basic/player2/'
     game_resolution = (48, 64)
     bw_size = (9.6, 7.2)
     color_size = (9.6, 7.2)
@@ -41,7 +42,7 @@ def make_sure_path_exists(path):
             raise
 
 
-episodes = 1
+episodes = 5
 
 game = DoomGame()
 game.load_config(config_file_path)
@@ -74,7 +75,7 @@ for i in trange(episodes):
 
         frame = game.get_state().screen_buffer
 
-        '''
+        
         fig_color = plt.figure(frameon=False, figsize=color_size)
         color_ax = plt.Axes(fig_color, [0., 0., 1., 1.])
         color_ax.set_axis_off()
@@ -95,7 +96,7 @@ for i in trange(episodes):
         comparison_ax2.imshow(state, interpolation="none")
         plt.savefig(load_path + '/comparison/' + str(i) + '_' + str(current_frame) + '.png', facecolor='black')
         plt.close(fig_comparison)
-        '''
+        
         fig_bw = plt.figure(frameon=False, figsize=bw_size)
         bw_ax = plt.Axes(fig_bw, [0., 0., 1., 1.])
         bw_ax.set_axis_off()

@@ -15,7 +15,7 @@ from vizdoom import *
 
 episodes = 3
 
-folder_path = "model_death_basic_4_player1/records/"
+folder_path = "model_death_basic_multi_Player5/records/"
 
 game = DoomGame()
 
