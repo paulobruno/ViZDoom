@@ -144,19 +144,10 @@ def exploration_rate(epoch):
 
 class DqnPlayer():
 
-#    def __init__(self, name, colorset, is_host, sess, learn, get_q_values, get_best_action):
     def __init__(self, name, colorset, is_host):
         self.name = name
         self.colorset = colorset
         self.is_host = is_host
-        #self.sess = sess
-        #self.learn = learn
-        #self.get_q_values = get_q_values
-        #self.get_best_action = get_best_action
-        
-#    def load_config():
-#        with open('config_read_file.txt') as f:
-            
     
     def init_doom(self):
         print('Initializing doom...')
@@ -168,10 +159,8 @@ class DqnPlayer():
         self.game.set_screen_resolution(ScreenResolution.RES_640X480)
         if (self.is_host):
             self.game.add_game_args('-host 2 -deathmatch +timelimit 1 +sv_spawnfarthest 1')
-#            print('d: -host 2 -deathmatch +timelimit 1 +sv_spawnfarthest 1')
         else:
             self.game.add_game_args('-join 127.0.0.1')
-#            print('d: -join 127.0.0.1')
         self.game.add_game_args('+name ' + self.name + ' +colorset ' + self.colorset)
         self.game.init()
         print('Doom initizalized.')
@@ -188,58 +177,28 @@ class DqnPlayer():
                 copyfile('settings.cfg', self.save_path_player + log_savefile)
                 self.log_file = open(self.save_path_player + log_savefile, 'a')
                 print('\nTotal_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max', file=self.log_file)
-                '''
-                self.log_file = open(self.save_path_player + log_savefile, 'w')
-                print('Map: ' + game_map, file=self.log_file)
-                print('Resolution: ' + str(game_resolution), file=self.log_file)
-                print('Image channels: ' + str(img_channels), file=self.log_file)
-                print('Frame repeat: ' + str(frame_repeat), file=self.log_file)
-                print('Learning rate: ' + str(learning_rate), file=self.log_file)
-                print('Discount: ' + str(discount_factor), file=self.log_file)
-                print('Replay memory size: ' + str(replay_memory_size), file=self.log_file)
-                print('Dropout probability: ' + str(dropout_keep_prob), file=self.log_file)
-                print('Batch size: ' + str(batch_size), file=self.log_file)
-                print('Convolution kernel size: (' + str(conv_width) + ',' + str(conv_height) + ')', file=self.log_file)
-                feat_layers = ''
-                for i in range(num_feat_layers):
-                    feat_layers += str(features_layer[i]) + ' '
-                print('Layers size: ' + feat_layers, file=self.log_file),
-                print('Fully connected size: ' + str(fc_num_outputs), file=self.log_file)
-                print('Epochs: ' + str(num_epochs), file=self.log_file)
-                print('Training episodes: ' + str(train_episodes_per_epoch), file=self.log_file)
-                #print('Learning steps: ' + str(learning_steps_per_epoch), file=self.log_file)
-                print('Testing episodes: ' + str(test_episodes_per_epoch), file=self.log_file)
-                print('Total_elapsed_time Training_episodes Training_min Training_mean Training_max Testing_min Testing_mean Testing_max', file=self.log_file)
-                '''
             
 
     def perform_learning_step(self, eps):
         
-        #print('inicio...')
         s1 = preprocess(self.game.get_state().screen_buffer)
 
-        #print('eps...')
         if random() <= eps:
             a = randint(0, len(self.actions) - 1)
         else:
             a = self.get_best_action(s1, True)
             
-        #print('reward...')
         last_frags = self.game.get_game_variable(GameVariable.FRAGCOUNT)
         self.game.make_action(self.actions[a], frame_repeat)
         current_frags = self.game.get_game_variable(GameVariable.FRAGCOUNT)
         reward = reward_multiplier * (current_frags - last_frags) - 1.0
         
-        #print('temrinal...')
         isterminal = self.game.is_episode_finished()
         
-        #print('s2...')
         s2 = preprocess(self.game.get_state().screen_buffer) if not isterminal else None
 
-        #print('memory...')
         self.memory.add_transition(s1, a, s2, isterminal, reward)
 
-        #print('batch...')
         if self.memory.size > batch_size:
             s1, a, s2, isterminal, r = self.memory.get_sample(batch_size)
 
@@ -252,7 +211,6 @@ class DqnPlayer():
 
 
     def run(self):
-        #game = initialize_vizdoom(config_file_path)
                         
         self.init_doom()
         self.init_config()
@@ -306,20 +264,10 @@ class DqnPlayer():
                             self.perform_learning_step(eps)
                                                 
                     score = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
-    #                score = game.get_total_reward()
                     train_scores.append(score)
                     train_episodes_finished += 1
                     
-    #                print("Episode finished!")
-    #                print("Player1 frags:", score)
-                    
                     self.game.new_episode()
-
-    #            while not game.is_episode_finished():
-    #                if game.is_player_dead():
-    #                    game.respawn_player()
-    #                game.make_action(choice(actions))
-
 
                 print('%d training episodes played.' % train_episodes_finished)
      
@@ -334,46 +282,31 @@ class DqnPlayer():
                     self.game.set_seed(test_map[test_episode])
                     
                     while not self.game.is_episode_finished():
-                        #print(self.name + 'd: in while')
                         if self.game.is_player_dead():
                             self.game.respawn_player()
-                            #print(self.name + 'd: respawn')
                         
                         if not self.game.is_episode_finished():
-                            #print(self.name + 'd: if not finished')
                             state = preprocess(self.game.get_state().screen_buffer)
-                            #print(self.name + 'd: preprocess')
                             best_action_index = self.get_best_action(state, False)
-                            #print(self.name + 'd: best action')
                                                 
                             self.game.make_action(self.actions[best_action_index], frame_repeat)
-
-                    #print(self.name + 'd: after episode finished')
                     
                     r = reward_multiplier * self.game.get_game_variable(GameVariable.FRAGCOUNT) - 300.0
-    #                r = game.get_total_reward() 
                     test_scores.append(r)
-                    
-                    #print('d: after socre append')
+
                     self.game.new_episode()
-                    
-                    #print('d: after new episode')
 
                 test_scores = np.array(test_scores)
                 print('Results: mean: %.1f±%.1f,' % (test_scores.mean(), test_scores.std()), \
                       'min: %.1f,' % test_scores.min(), 'max: %.1f,' % test_scores.max())
 
-            # Starts a new episode. All players have to call new_episode() in multiplayer mode.
-
                 if save_model:
                     make_sure_path_exists(self.save_path_player+model_savefile)
                     print('Saving the network weights to:', self.save_path_player+model_savefile)
-                    #saver.save(self.sess, self.save_path_player+model_savefile)
                     saver.save(sess, self.save_path_player+model_savefile)
 
                 total_elapsed_time = (time() - time_start) / 60.0
                 print('Total elapsed time: %.2f minutes' % total_elapsed_time)
-
 
                 # log to file
                 if save_log:
@@ -381,7 +314,6 @@ class DqnPlayer():
                           train_scores.min(), train_scores.mean(), train_scores.max(), 
                           test_scores.min(), test_scores.mean(), test_scores.max(), file=self.log_file)
                     self.log_file.flush()
-
 
         if save_log:
             self.log_file.close()
